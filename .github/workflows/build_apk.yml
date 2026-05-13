@@ -1,0 +1,54 @@
+name: Android APK Yaratish
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Kodni yuklab olish
+        uses: actions/checkout@v3
+
+      - name: Python o'rnatish
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Kerakli tizim kutubxonalarini o'rnatish
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            git zip unzip \
+            openjdk-17-jdk \
+            python3-pip \
+            autoconf libtool pkg-config \
+            zlib1g-dev libncurses5-dev libncursesw5-dev \
+            cmake libffi-dev libssl-dev \
+            build-essential libsqlite3-dev sqlite3 \
+            bzip2 libbz2-dev
+
+      - name: Buildozer va Cython o'rnatish
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython
+
+      - name: Android SDK litsenziyasini qabul qilish
+        run: |
+          mkdir -p ~/.android
+          touch ~/.android/repositories.cfg
+          yes | buildozer android debug 2>&1 | tail -50 || true
+
+      - name: APK yaratish
+        run: |
+          buildozer android debug
+
+      - name: APK faylini saqlash (artifact)
+        uses: actions/upload-artifact@v3
+        with:
+          name: dokon-apk
+          path: bin/*.apk
+          retention-days: 30
